@@ -23,9 +23,15 @@ function fetchAccount(){
   return secureQuery('/api/v3/account');
 }
 
-async function newOrder(symbol, side, price, quantity, type="LIMIT") {
- let query = `symbol=${symbol}&side=${side}&type=${type}&`;
- 
+function newOrder(options) {
+  let query = null
+  if(options.type === 'LIMIT'){
+    query = `symbol=${options.symbol}&side=${options.side}&price=${options.price}&quantity=${Number(options.quantity)}&timeInForce=GTC&type=LIMIT`;
+  } else if(options.type === 'MARKET') {
+    query = `symbol=${options.symbol}&side=${options.side}&quantity=${Number(options.quantity)}&type=MARKET`;
+  }
+
+  return secureQuery('/api/v3/order', query); 
 }
 
 async function getBallance(COIN) {
@@ -44,5 +50,6 @@ export function useAPI() {
     getBallance,
     isOpenOrders,
     fetchAccount,
+    newOrder,
   }
 }

@@ -3,19 +3,123 @@ import { useArbitrage } from "./arbitrage.ts"
 import { toFixed, toPrecision } from "https://deno.land/x/math@v1.1.0/mod.ts";
 import { sleep } from "https://deno.land/x/sleep/mod.ts";
 
-const { secureQuery, getBallance } = useAPI();
+const { secureQuery, getBallance, newOrder, isOpenOrders } = useAPI();
 const { checkFlow } = useArbitrage();
 
 //await checkFlow("DOGE");
-const { COINUSDT, COINBTC, BTCUSDT, UP, DOWN } =  await checkFlow("AION");
+
+const COINname = 'AION';
+//const COINname = 'DOGE';
+const { COINUSDT, COINBTC, BTCUSDT, UP, DOWN } =  await checkFlow(COINname);
 
 const USDTb = await getBallance('USDT');
 console.log();
 console.log('USDT ballance: ', USDTb);
 
+const COINqty = Math.trunc(USDTb/COINUSDT)-1;
+const flow = {
+  up: [ 
+    {
+      symbol: `${COINname}USDT`,
+      side: 'BUY',
+      price: COINUSDT,
+      type: 'MARKET',
+      getQty: async () => {
+        const USDTb = await getBallance('USDT');
+        return Math.trunc(USDTb/COINUSDT)-1;
+      }, 
+    },
+    {
+      symbol: `${COINname}BTC`,
+      side: 'SELL',
+      type: 'MARKET',
+      price: COINBTC,
+      getQty: async () => {
+        const COINb = await getBallance(COINname);
+        return Math.trunc(COINb)-1; 
+      }, 
+    },
+    {
+      symbol: 'BTCUSDT',
+      side: 'SELL',
+      type: 'LIMIT',
+      price: BTCUSDT,
+      getQty: async () => {
+        const BTCb = await getBallance('BTC');
+        return BTCb.toString().slice(0, 7);  
+      }, 
+    },
+  ],
+  down: [
+    {
+      symbol: 'BTCUSDT',
+      side: 'BUY',
+      type: 'LIMIT',
+      price: BTCUSDT,
+      getQty: async () => {
+        const USDTb = await getBallance('USDT');
+        return (USDTb/BTCUSDT).toString().slice(0, 7);
+      },
+    },
+    {
+      symbol: `${COINname}BTC`,
+      side: 'BUY',
+      type: 'MARKET',
+      price: COINBTC,
+      getQty: async () => {
+        const BTCb = await getBallance('BTC');
+        return Math.trunc(BTCb/COINBTC)-1;
+      }, 
+    },
+    {
+      symbol: `${COINname}USDT`,
+      side: 'SELL',
+      type: 'MARKET',
+      price: COINUSDT,
+      getQty: async () => {
+        const COINb = await getBallance(COINname);
+        return Math.trunc(COINb)-1; 
+      },
+    },
+  ],
+}
+
+let steps = [];
+let step = 0;
 if(UP) {
-  const COIN = Math.trunc(USDTb/COINUSDT)-1;
-  console.log('Buy COIN: ', COIN);
+  steps = flow.up;
+}
+if(DOWN) {
+  steps = flow.down;
+}
+async function nextStep(){
+  const options = steps[step];    
+  options.quantity = await options.getQty(); 
+  console.log('options', options);
+  if(options.quantity) {
+    step++;
+    return newOrder(options);
+  }
+  return null;
+};
+
+if(steps.length > 0){
+  const first = await nextStep();
+  console.log('frist', first);
+  while(true) {
+    if(step === 3) {
+      break;
+    }
+    const hasOpenOrder = await isOpenOrders();      
+    if(!hasOpenOrder) {
+      const next = await nextStep(); 
+      console.log('next', next);
+    }
+    sleep(2);
+  }
+}
+
+if(false) {
   const BTC = COIN * COINBTC;
   console.log('Buy BTC: ', BTC);
   const USDT = BTC * BTCUSDT;
@@ -41,7 +145,7 @@ if(UP) {
   console.log("stepThree", stepThree);
 }
 
-if(true) {
+if(false) {
   const BTCdown = USDTb/BTCUSDT;
 
   console.log();
