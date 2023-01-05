@@ -1,0 +1,69 @@
+
+const url = "https://api.binance.com";
+
+async function initPrices(coins){
+  const coinsList = coins.map(item=>`"${item}"`);
+  const query = `/api/v3/ticker/price?symbols=[${coinsList}]`;
+
+  console.log('query', query);
+  const result = await fetch(url + query);
+  const data = await result.json();
+  return coins.reduce((a, coin) => ({ ...a, [coin]: data.find(item => item.symbol === coin).price}), {});
+}
+
+async function convertCoin(pair, availableCoin, price, quantity){
+  const index = pair.indexOf(coin);
+  if(index) {
+    
+  }
+}
+
+
+async function checkFlow(options) {
+  options.prices= await initPrices(options.symbols);
+  console.log(options);
+
+  return {}
+
+  const coinsList = coins.map(item=>`"${item}"`);
+  const query = `/api/v3/ticker/price?symbols=[${coinsList}]`;
+
+  console.log('query', query);
+  const result = await fetch(url + query);
+  const data = await result.json();
+  
+  console.log('data', data);
+  const DOGEUSDT = data.find(item => item.symbol === `${coins[0]}`).price;
+  const DOGEBTC = data.find(item => item.symbol === `${coins[1]}`).price;
+  const BTCUSDT = data.find(item => item.symbol === `${coins[2]}`).price;
+
+  const DOGE = 100/DOGEUSDT;
+  const BTC = DOGE*DOGEBTC; 
+  const USDT = BTC*BTCUSDT;
+  console.log(`${coins[0]}`, DOGEUSDT); 
+  console.log(`${coins[1]}`, DOGEBTC); 
+  console.log(`${coins[2]}`, BTCUSDT); 
+
+  console.log('-----------'); 
+
+  console.log(`${coins[0]}`, DOGE); 
+  console.log(`${coins[1]}`, BTC); 
+  console.log(`${coins[2]}`, USDT); 
+
+  console.log('-----------'); 
+
+  const BTC100T = 100/BTCUSDT;
+  const DOGE100T = BTC100T/DOGEBTC;
+  const USDT100T = DOGE100T*DOGEUSDT;
+
+  console.log('BTC100T', BTC100T);
+  console.log(`${coins[0]}100T`, DOGE100T);
+  console.log('USDT100T', USDT100T);
+  return { COINUSDT: DOGEUSDT, COINBTC: DOGEBTC, BTCUSDT, UP: USDT > 100.2, DOWN: USDT100T > 100.2 };
+}
+
+export function useArbitrage(){
+  return {
+    checkFlow,
+  }
+}

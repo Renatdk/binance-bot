@@ -4,14 +4,24 @@ import { toFixed, toPrecision } from "https://deno.land/x/math@v1.1.0/mod.ts";
 import { sleep } from "https://deno.land/x/sleep/mod.ts";
 
 const { secureQuery, getBallance, newOrder, isOpenOrders } = useAPI();
-const { checkFlow } = useArbitrage();
+const { checkFlow, loadPrices, exchangeInfo} = useArbitrage();
 
-//await checkFlow("DOGE");
+await loadPrices()
 
-const COINname = 'AION';
-//const COINname = 'DOGE';
-const { COINUSDT, COINBTC, BTCUSDT, UP, DOWN } =  await checkFlow(COINname);
+const exchangeList = '["AIONUSDT","AIONBTC","BTCUSDT","USDTBRL","FISBRL","FISUSDT","FTMUSDT","FTMRUB","USDTRUB"]'
 
+await exchangeInfo(exchangeList)
+
+const flowOptions = [
+    [['AION','USDT'],['AION','BTC'],['BTC','USDT']],
+    [['USDT','BRL'],['FIS','BRL'],['FIS','USDT']],
+    [['FTM','USDT'],['FTM','RUB'],['USDT','RUB']],
+]
+
+flowOptions.forEach(options => checkFlow({coins: options, main:'USDT', quantity: 1000}))
+//const { COINUSDT, COINBTC, BTCUSDT, UP, DOWN } =  await checkFlow(flowOptions1);
+
+/*
 const USDTb = await getBallance('USDT');
 console.log();
 console.log('USDT ballance: ', USDTb);
@@ -163,7 +173,9 @@ if(false) {
     console.log('COIN', COIN);
     await sleep(2);
   }
-/*  const queryFirst = `symbol=BTCUSDT&side=BUY&type=LIMIT&timeInForce=GTC&price=${BTCUSDT}&quantity=${BTCdown.toString().slice(0,7)}`;
+
+
+  const queryFirst = `symbol=BTCUSDT&side=BUY&type=LIMIT&timeInForce=GTC&price=${BTCUSDT}&quantity=${BTCdown.toString().slice(0,7)}`;
   const stepFirst = await secureQuery('/api/v3/order', queryFirst); 
   console.log("stepFirst", stepFirst);
   const BTCb = stepFirst.cummulativeQuoteQty;
@@ -176,9 +188,7 @@ if(false) {
   const stepThree= await secureQuery('/api/v3/order', queryThree); 
   console.log("stepThree", stepThree);
 
-*/
 }
-
-
+*/
 
 
