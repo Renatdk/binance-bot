@@ -1,3 +1,8 @@
+import { useAPI } from "./api.ts"
+import { useBot} from "./tg-bot.ts"
+
+const { secureQuery } = useAPI()
+const { sendMessage } = useBot()
 
 const url = "https://api.binance.com";
 let priceList = []
@@ -36,20 +41,19 @@ function getFormattedQty(symbol, quantity){
 }
 
 function convertCoin(pair, myCoin, price, quantity){
-  console.log(pair, myCoin, price, quantity)
   const side = pair.indexOf(myCoin) ? 'BUY' : 'SELL'
   if(side === 'SELL') {
     quantity = getFormattedQty(`${pair[0]}${pair[1]}`, quantity)
-    console.log('quantity', quantity)
     return {
+      query: `symbol=${pair[0]}${pair[1]}&side=SELL&type=MARKET&quantity=${quantity}`,
       coin: pair[1],
       quantity: price * quantity,
       side,
     }
   } else if(side === 'BUY') {
     quantity = getFormattedQty(`${pair[0]}${pair[1]}`, quantity / price)
-    console.log('quantity', quantity)
     return {
+      query: `symbol=${pair[0]}${pair[1]}&side=BUY&type=MARKET&quantity=${quantity}`,
       coin: pair[0],
       quantity, 
       side,
@@ -57,6 +61,12 @@ function convertCoin(pair, myCoin, price, quantity){
   } 
 }
 
+async function createOrders(queries){
+  for(let i = 0; i < 3; i++){
+    const newOrder = await secureQuery('/api/v3/order', queries[i])
+    console.log(newOrder)
+  }
+}
 
 async function checkFlow(options) {
   const symbols = options.coins.map(item => `${item[0]}${item[1]}`)
@@ -65,14 +75,26 @@ async function checkFlow(options) {
   
   let currentCoin = options.main
   let currentQuantity = options.quantity 
+  let queries = {
+    up: {
+      coin: null,
+      queries: [], 
+    },
+    down: {
+      coin: null,
+      queries: [],
+    }
+  }
 
   for(let i = 0; i < 3; i++) {
     const coin = convertCoin(options.coins[i], currentCoin, options.prices[symbols[i]], currentQuantity)
     currentCoin = coin.coin
     currentQuantity = coin.quantity
-    console.log(coin)
+    queries.up.coin = coin
+    queries.up.queries.push(coin.query)
   }  
   console.log() 
+  console.log(symbols, currentQuantity)
   currentCoin = options.main
   currentQuantity = options.quantity 
 
@@ -80,9 +102,20 @@ async function checkFlow(options) {
     const coin = convertCoin(options.coins[i], currentCoin, options.prices[symbols[i]], currentQuantity)
     currentCoin = coin.coin
     currentQuantity = coin.quantity
-    console.log(coin)
+    queries.down.coin = coin
+    queries.down.queries.push(coin.query)
   } 
-
+  console.log(symbols, currentQuantity)
+  if(queries.up.coin.quantity > 100.5){
+    console.log('queries up', queries.up)
+    sendMessage({chat_id:195282026, text: queries.up.coin})
+    createOrders(queries.up.queries)
+  }
+  if(queries.down.coin.quantity > 100.5){
+    console.log('queries down', queries.down)
+    sendMessage({chat_id:195282026, text: queries.down.coin})
+    createOrders(queries.down.queries)
+  }  
   console.log() 
   console.log() 
   return {}

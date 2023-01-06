@@ -6,7 +6,6 @@ import { sleep } from "https://deno.land/x/sleep/mod.ts";
 const { secureQuery, getBallance, newOrder, isOpenOrders } = useAPI();
 const { checkFlow, loadPrices, exchangeInfo} = useArbitrage();
 
-await loadPrices()
 
 const exchangeList = '["AIONUSDT","AIONBTC","BTCUSDT","USDTBRL","FISBRL","FISUSDT","FTMUSDT","FTMRUB","USDTRUB"]'
 
@@ -17,8 +16,13 @@ const flowOptions = [
     [['USDT','BRL'],['FIS','BRL'],['FIS','USDT']],
     [['FTM','USDT'],['FTM','RUB'],['USDT','RUB']],
 ]
-
-flowOptions.forEach(options => checkFlow({coins: options, main:'USDT', quantity: 1000}))
+let loop = 0
+while(true){
+  await loadPrices()
+  flowOptions.forEach(options => checkFlow({coins: options, main:'USDT', quantity: 100}))
+  await sleep(2)
+  console.log(loop++)
+}
 //const { COINUSDT, COINBTC, BTCUSDT, UP, DOWN } =  await checkFlow(flowOptions1);
 
 /*
