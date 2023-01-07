@@ -1,7 +1,7 @@
 import { useAPI } from "./api.ts"
 import { useBot} from "./tg-bot.ts"
 
-const { secureQuery } = useAPI()
+const { secureQuery, getBallance } = useAPI()
 const { sendMessage } = useBot()
 
 const url = "https://api.binance.com";
@@ -26,6 +26,13 @@ function initPrices(coins){
   return coins.reduce((a, coin) => ({ ...a, [coin]: priceList.find(item => item.symbol === coin).price}), {});
 }
 
+async function getPrice(symbol){
+  const query = `/api/v3/ticker/price?symbol=${symbol}`
+  const result = await fetch(url + query)
+  return result.json().price
+}
+
+
 function getFormattedQty(symbol, quantity){
   const stepSize = exchangeList.symbols.find(item => item.symbol === symbol)?.filters.find(item => item.filterType === 'LOT_SIZE')?.stepSize
   const index = stepSize.indexOf(1)
@@ -40,6 +47,14 @@ function getFormattedQty(symbol, quantity){
   }
 }
 
+async function calcBuyQty(pair) {
+  const symbol = `${pair[0]}${pair[1]}`
+  const price = await getPrice(symbol)
+  const COINb = await getBallance(pair[1])
+  const qty = COINb/price
+  return getFormattedQty(symbol, qty) 
+}
+
 function convertCoin(pair, myCoin, price, quantity){
   const side = pair.indexOf(myCoin) ? 'BUY' : 'SELL'
   if(side === 'SELL') {
@@ -47,6 +62,7 @@ function convertCoin(pair, myCoin, price, quantity){
     return {
       query: `symbol=${pair[0]}${pair[1]}&side=SELL&type=MARKET&quantity=${quantity}`,
       coin: pair[1],
+      pair,
       quantity: price * quantity,
       side,
     }
@@ -56,6 +72,7 @@ function convertCoin(pair, myCoin, price, quantity){
       query: `symbol=${pair[0]}${pair[1]}&side=BUY&type=MARKET&quantity=${quantity}`,
       coin: pair[0],
       quantity, 
+      pair,
       side,
     } 
   } 
@@ -78,11 +95,11 @@ async function checkFlow(options) {
   let queries = {
     up: {
       coin: null,
-      queries: [], 
+      flow: [], 
     },
     down: {
       coin: null,
-      queries: [],
+      flow: [], 
     }
   }
 
@@ -91,9 +108,9 @@ async function checkFlow(options) {
     currentCoin = coin.coin
     currentQuantity = coin.quantity
     queries.up.coin = coin
-    queries.up.queries.push(coin.query)
+    queries.up.flow.push(coin)
   }  
-  console.log() 
+
   console.log(symbols, currentQuantity)
   currentCoin = options.main
   currentQuantity = options.quantity 
@@ -103,58 +120,24 @@ async function checkFlow(options) {
     currentCoin = coin.coin
     currentQuantity = coin.quantity
     queries.down.coin = coin
-    queries.down.queries.push(coin.query)
+    queries.down.flow.push(coin)
   } 
   console.log(symbols, currentQuantity)
-  if(queries.up.coin.quantity > 100.5){
+  
+  if(queries.up.coin.quantity > 100.6){
     console.log('queries up', queries.up)
     sendMessage({chat_id:195282026, text: queries.up.coin})
-    createOrders(queries.up.queries)
+    return queries.up.flow
+    //createOrders(queries.up.queries)
   }
-  if(queries.down.coin.quantity > 100.5){
+  
+  if(queries.down.coin.quantity > 100.6){
     console.log('queries down', queries.down)
     sendMessage({chat_id:195282026, text: queries.down.coin})
-    createOrders(queries.down.queries)
+    return queries.down.flow
+    //createOrders(queries.down.queries)
   }  
-  console.log() 
-  console.log() 
-  return {}
-
-  const coinsList = coins.map(item=>`"${item}"`);
-  const query = `/api/v3/ticker/price?symbols=[${coinsList}]`;
-
-  console.log('query', query);
-  const result = await fetch(url + query);
-  const data = await result.json();
-  
-  console.log('data', data);
-  const DOGEUSDT = data.find(item => item.symbol === `${coins[0]}`).price;
-  const DOGEBTC = data.find(item => item.symbol === `${coins[1]}`).price;
-  const BTCUSDT = data.find(item => item.symbol === `${coins[2]}`).price;
-
-  const DOGE = 100/DOGEUSDT;
-  const BTC = DOGE*DOGEBTC; 
-  const USDT = BTC*BTCUSDT;
-  console.log(`${coins[0]}`, DOGEUSDT); 
-  console.log(`${coins[1]}`, DOGEBTC); 
-  console.log(`${coins[2]}`, BTCUSDT); 
-
-  console.log('-----------'); 
-
-  console.log(`${coins[0]}`, DOGE); 
-  console.log(`${coins[1]}`, BTC); 
-  console.log(`${coins[2]}`, USDT); 
-
-  console.log('-----------'); 
-
-  const BTC100T = 100/BTCUSDT;
-  const DOGE100T = BTC100T/DOGEBTC;
-  const USDT100T = DOGE100T*DOGEUSDT;
-
-  console.log('BTC100T', BTC100T);
-  console.log(`${coins[0]}100T`, DOGE100T);
-  console.log('USDT100T', USDT100T);
-  return { COINUSDT: DOGEUSDT, COINBTC: DOGEBTC, BTCUSDT, UP: USDT > 100.2, DOWN: USDT100T > 100.2 };
+  return null 
 }
 
 export function useArbitrage(){
@@ -162,5 +145,7 @@ export function useArbitrage(){
     checkFlow,
     loadPrices,
     exchangeInfo,
+    calcBuyQty,
+    getFormattedQty,
   }
 }

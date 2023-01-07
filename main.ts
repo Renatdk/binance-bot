@@ -1,10 +1,12 @@
 import { useAPI } from "./api.ts";
+import { useBot} from "./tg-bot.ts"
 import { useArbitrage } from "./arbitrage.ts"
 import { toFixed, toPrecision } from "https://deno.land/x/math@v1.1.0/mod.ts";
 import { sleep } from "https://deno.land/x/sleep/mod.ts";
 
 const { secureQuery, getBallance, newOrder, isOpenOrders } = useAPI();
-const { checkFlow, loadPrices, exchangeInfo} = useArbitrage();
+const { checkFlow, loadPrices, exchangeInfo, calcBuyQty, getFormattedQty} = useArbitrage();
+const { sendMessage } = useBot()
 
 
 const exchangeList = '["AIONUSDT","AIONBTC","BTCUSDT","USDTBRL","FISBRL","FISUSDT","FTMUSDT","FTMRUB","USDTRUB"]'
@@ -17,12 +19,59 @@ const flowOptions = [
     [['FTM','USDT'],['FTM','RUB'],['USDT','RUB']],
 ]
 let loop = 0
-while(true){
+async function checkFlows(){
   await loadPrices()
-  flowOptions.forEach(options => checkFlow({coins: options, main:'USDT', quantity: 100}))
+  for(let i=0; i < flowOptions.length; i++) {
+    const flows = await checkFlow({coins: flowOptions[i], main: 'USDT', quantity: 100})
+    if(flows){
+      console.log('flows', flows)
+      createOrders(flows)
+      return null 
+    }  
+  }
   await sleep(2)
   console.log(loop++)
+  checkFlows()
 }
+  
+async function createOrder(flow, prevQty) {
+  const symbol = `${flow.pair[0]}${flow.pair[1]}`
+  
+  if(prevQty) {
+    prevQty = flow.side === 'SELL' ? getFormattedQty(symbol, prevQty) : getFormattedQty(symbol, prevQty/flow.price)
+  }
+ 
+  let qty = prevQty ?? flow.quantity
+  let query = `symbol=${flow.pair[0]}${flow.pair[1]}&side=${flow.side}&type=MARKET&quantity=${qty}`
+  let newOrder = await secureQuery('/api/v3/order', flow.query)
+  
+  if(newOrder.code < 0) {
+    sendMessage({chat_id:195282026, text: 'Упс!'})
+    sendMessage({chat_id:195282026, text: newOrder})
+ 
+    if(flow.side === 'BUY'){ 
+      const qty = calcBuyQty(flow.pair)
+      newOrder = await createOrder(flow, qty)      
+    }
+ 
+    if(flow.side === 'SELL'){
+      sendMessage({chat_id:195282026, text: 'Flow sell???'})
+    }
+  }
+  console.log(newOrder)
+  return newOrder
+}
+
+async function createOrders(flows) {
+  let prevQty = null
+  for(let i = 0; i < flows.length; i++) {
+    const newOrder = await createOrder(flows[i], prevQty)
+    prevQty = newOrder.cummulativeQuoteQty
+  }
+}
+
+checkFlows()
+
 //const { COINUSDT, COINBTC, BTCUSDT, UP, DOWN } =  await checkFlow(flowOptions1);
 
 /*
