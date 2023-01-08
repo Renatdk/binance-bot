@@ -54,7 +54,8 @@ async function createOrder(flow, prevQty) {
     sendMessage({chat_id:195282026, text: 'Упс!'})
     sendMessage({chat_id:195282026, text: newOrder})
     sendMessage({chat_id:195282026, text: flow})
- 
+    sendMessage({chat_id:195282026, text: `https://www.binance.com/ru/trade/${flow.pair[0]}_${flow.pair[1]}?theme=dark&type=spot`})
+    sendMessage() 
     if(flow.side === 'BUY'){ 
       flow.price = await getPrice(symbol)
       console.log('price', flow.price)
@@ -66,7 +67,7 @@ async function createOrder(flow, prevQty) {
     }
   }
   console.log(newOrder)
-  sendMessage({chat_id:195282026, text: newOrder})
+  sendMessage({chat_id:195282026, text: query})
   return newOrder
 }
 
@@ -74,7 +75,8 @@ async function createOrders(flows) {
   let prevQty = null
   for(let i = 0; i < flows.length; i++) {
     const newOrder = await createOrder(flows[i], prevQty)
-    prevQty = newOrder.cummulativeQuoteQty
+    prevQty = flows[i].side === 'BUY' ?  newOrder.executedQty : newOrder.cummulativeQuoteQty
+
   }
 }
 

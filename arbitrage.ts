@@ -26,6 +26,27 @@ function initPrices(coins){
   return coins.reduce((a, coin) => ({ ...a, [coin]: priceList.find(item => item.symbol === coin).price}), {});
 }
 
+async function exchangeCoins(pair, from, quantity, price){
+  const side = from === pair[0] ? 'SELL' : 'BUY'
+  const to = from === pair[0] ? pair[1] : pair[0]
+  const symbol = `${pair[0]}${pair[1]}`
+  let qty = side === 'BUY' ? quantity / price : quantity
+  qty = getFormattedQty(symbol, qty) 
+  const query = `symbol=${symbol}&side=${side}&type=MARKET&quantity=${qty}`
+  const response = await secureQuery('/api/v3/order/test', query)
+
+  if(resonse.code < 0){
+    price = await getPrice(symbol)
+    return await exchangeCoins(pair, from, to, quantity, price)  
+  }
+
+  if(side === 'SELL'){
+    return {coin: to, quantity: response.executedQty}
+  } else {
+    return response.cummulativeQuoteQty
+  }
+}
+
 async function getPrice(symbol){
   const query = `/api/v3/ticker/price?symbol=${symbol}`
   const result = await fetch(url + query)
@@ -128,14 +149,14 @@ async function checkFlow(options) {
   } 
   console.log(symbols, currentQuantity)
   
-  if(queries.up.coin.quantity > 100.6){
+  if(queries.up.coin.quantity > 100.9){
     console.log('queries up', queries.up)
     sendMessage({chat_id:195282026, text: queries.up.coin})
     return queries.up.flow
     //createOrders(queries.up.queries)
   }
   
-  if(queries.down.coin.quantity > 100.6){
+  if(queries.down.coin.quantity > 100.9){
     console.log('queries down', queries.down)
     sendMessage({chat_id:195282026, text: queries.down.coin})
     return queries.down.flow
