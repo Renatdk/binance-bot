@@ -147,5 +147,6 @@ export function useArbitrage(){
     exchangeInfo,
     calcBuyQty,
     getFormattedQty,
+    getPrice,
   }
 }
