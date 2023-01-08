@@ -38,19 +38,26 @@ async function createOrder(flow, prevQty) {
   const symbol = `${flow.pair[0]}${flow.pair[1]}`
   
   if(prevQty) {
+    console.log('getFormattedQty', symbol, prevQty, getFormattedQty(symbol, prevQty))
+    
     prevQty = flow.side === 'SELL' ? getFormattedQty(symbol, prevQty) : getFormattedQty(symbol, prevQty/flow.price)
   }
  
-  let qty = prevQty ?? flow.quantity
+  let qty = prevQty ?? flow.sellQty ?? flow.quantity
+  qty = getFormattedQty(symbol, qty)
   let query = `symbol=${flow.pair[0]}${flow.pair[1]}&side=${flow.side}&type=MARKET&quantity=${qty}`
-  let newOrder = await secureQuery('/api/v3/order', flow.query)
+  console.log('query', query)
+  console.log('flow', flow)
+  let newOrder = await secureQuery('/api/v3/order', query)
   
   if(newOrder.code < 0) {
     sendMessage({chat_id:195282026, text: 'Упс!'})
+    sendMessage({chat_id:195282026, text: newOrder})
     sendMessage({chat_id:195282026, text: flow})
  
     if(flow.side === 'BUY'){ 
       flow.price = await getPrice(symbol)
+      console.log('price', flow.price)
       newOrder = await createOrder(flow, prevQty)      
     }
  
@@ -59,6 +66,7 @@ async function createOrder(flow, prevQty) {
     }
   }
   console.log(newOrder)
+  sendMessage({chat_id:195282026, text: newOrder})
   return newOrder
 }
 

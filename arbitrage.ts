@@ -29,7 +29,8 @@ function initPrices(coins){
 async function getPrice(symbol){
   const query = `/api/v3/ticker/price?symbol=${symbol}`
   const result = await fetch(url + query)
-  return result.json().price
+  const data = await result.json()
+  return data.price
 }
 
 
@@ -63,6 +64,8 @@ function convertCoin(pair, myCoin, price, quantity){
       query: `symbol=${pair[0]}${pair[1]}&side=SELL&type=MARKET&quantity=${quantity}`,
       coin: pair[1],
       pair,
+      price,
+      sellQty: quantity, 
       quantity: price * quantity,
       side,
     }
@@ -72,6 +75,7 @@ function convertCoin(pair, myCoin, price, quantity){
       query: `symbol=${pair[0]}${pair[1]}&side=BUY&type=MARKET&quantity=${quantity}`,
       coin: pair[0],
       quantity, 
+      price,
       pair,
       side,
     } 
