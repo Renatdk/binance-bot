@@ -5,7 +5,7 @@ import { toFixed, toPrecision } from "https://deno.land/x/math@v1.1.0/mod.ts";
 import { sleep } from "https://deno.land/x/sleep/mod.ts";
 
 const { secureQuery, getBallance, newOrder, isOpenOrders } = useAPI();
-const { checkFlow, loadPrices, exchangeInfo, calcBuyQty, getFormattedQty} = useArbitrage();
+const { checkFlow, loadPrices, exchangeInfo, getPrice, getFormattedQty} = useArbitrage();
 const { sendMessage } = useBot()
 
 
@@ -47,11 +47,11 @@ async function createOrder(flow, prevQty) {
   
   if(newOrder.code < 0) {
     sendMessage({chat_id:195282026, text: 'Упс!'})
-    sendMessage({chat_id:195282026, text: newOrder})
+    sendMessage({chat_id:195282026, text: flow})
  
     if(flow.side === 'BUY'){ 
-      const qty = calcBuyQty(flow.pair)
-      newOrder = await createOrder(flow, qty)      
+      flow.price = await getPrice(symbol)
+      newOrder = await createOrder(flow, prevQty)      
     }
  
     if(flow.side === 'SELL'){
