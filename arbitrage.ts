@@ -14,12 +14,12 @@ async function exchangeInfo(list) {
   exchangeList = await result.json()
 }
 
-async function loadPrices(){
-  //const query = `/api/v3/ticker/price?symbols=[${coinsList}]`;
-  const query = '/api/v3/ticker/price';
+async function loadPrices(list){
+  const query = `/api/v3/ticker/price?symbols=${list}`;
 
   const result = await fetch(url + query);
   priceList = await result.json();
+  console.log('priceList', priceList)
 }
 
 function initPrices(coins){
@@ -37,13 +37,13 @@ async function exchangeCoins(pair, from, quantity, price){
 
   if(resonse.code < 0){
     price = await getPrice(symbol)
-    return await exchangeCoins(pair, from, to, quantity, price)  
+    return await exchangeCoins(pair, from, quantity, price)  
   }
 
   if(side === 'SELL'){
     return {coin: to, quantity: response.executedQty}
   } else {
-    return response.cummulativeQuoteQty
+    return { coin: to, quantity: response.cummulativeQuoteQty}
   }
 }
 
@@ -173,5 +173,6 @@ export function useArbitrage(){
     calcBuyQty,
     getFormattedQty,
     getPrice,
+    exchangeCoins,
   }
 }

@@ -5,22 +5,25 @@ import { toFixed, toPrecision } from "https://deno.land/x/math@v1.1.0/mod.ts";
 import { sleep } from "https://deno.land/x/sleep/mod.ts";
 
 const { secureQuery, getBallance, newOrder, isOpenOrders } = useAPI();
-const { checkFlow, loadPrices, exchangeInfo, getPrice, getFormattedQty} = useArbitrage();
+const { checkFlow, loadPrices, exchangeInfo, getPrice, getFormattedQty, exchangeCoins } = useArbitrage();
 const { sendMessage } = useBot()
 
 
-const exchangeList = '["AIONUSDT","AIONBTC","BTCUSDT","USDTBRL","FISBRL","FISUSDT","FTMUSDT","FTMRUB","USDTRUB"]'
+const exchangeList = '["AIONUSDT","AIONBTC","BTCUSDT","FTMUSDT","FTMRUB","USDTRUB","STORJUSDT","STORJTRY","USDTTRY","ALGOUSDT","ALGORUB","SOLUSDT","SOLBUSD","BUSDUSDT","DCRUSDT","DCRBTC"]'
 
 await exchangeInfo(exchangeList)
 
 const flowOptions = [
     [['AION','USDT'],['AION','BTC'],['BTC','USDT']],
-    [['USDT','BRL'],['FIS','BRL'],['FIS','USDT']],
     [['FTM','USDT'],['FTM','RUB'],['USDT','RUB']],
+    [['STORJ','USDT'],['STORJ','TRY'],['USDT','TRY']],
+    [['ALGO','USDT'],['ALGO','RUB'],['USDT','RUB']],
+    [['SOL','USDT'],['SOL','BUSD'],['BUSD','USDT']],
+    [['DCR','USDT'],['DCR','BTC'],['BTC','USDT']],
 ]
 let loop = 0
 async function checkFlows(){
-  await loadPrices()
+  await loadPrices(exchangeList)
   for(let i=0; i < flowOptions.length; i++) {
     const flows = await checkFlow({coins: flowOptions[i], main: 'USDT', quantity: 100})
     if(flows){
@@ -71,6 +74,7 @@ async function createOrder(flow, prevQty) {
   return newOrder
 }
 
+/*
 async function createOrders(flows) {
   let prevQty = null
   for(let i = 0; i < flows.length; i++) {
@@ -78,6 +82,13 @@ async function createOrders(flows) {
     prevQty = flows[i].side === 'BUY' ?  newOrder.executedQty : newOrder.cummulativeQuoteQty
 
   }
+}
+*/
+
+async function createOrders(flows) {
+  for(let i = 0; i < flows.length; i++) {
+    const response = exchangeCoins(flow[i].pair, flow[i].
+  } 
 }
 
 checkFlows()
