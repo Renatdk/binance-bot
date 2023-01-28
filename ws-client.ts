@@ -1,4 +1,3 @@
-
 function logError(msg: string) {
   console.log(msg);
   Deno.exit(1);
@@ -24,7 +23,9 @@ function handleError(e: Event | ErrorEvent) {
 
 console.log("Connecting to server ...");
 try {
-  const ws = new WebSocket("wss://stream.binance.com:9443/stream?streams=btcusdt@depth/aionusdt@depth");
+  const ws = new WebSocket(
+    "wss://stream.binance.com:9443/stream?streams=btcusdt@depth/aionusdt@depth",
+  );
   ws.onopen = () => handleConnected(ws);
   ws.onmessage = (m) => handleMessage(ws, m.data);
   ws.onclose = () => logError("Disconnected from server ...");
