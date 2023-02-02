@@ -37,6 +37,9 @@ export class Symbols {
         stepSize: item.filters.find((f) =>
           f.filterType === "LOT_SIZE"
         ).stepSize,
+        tickSize: item.filters.find((f) => 
+          f.filterType === "PRICE_FILTER"
+        ).tickSize,
       };
     }
   }

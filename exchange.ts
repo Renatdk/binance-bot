@@ -38,7 +38,6 @@ export class Exchange {
       }
     } else {
       for (const ask of data.asks) {
-        console.log("ask", ask);
         const bidQuantity = Number(ask[0]) * Number(ask[1]) + quoteQuantity;
         if (bidQuantity < quantity) {
           quoteQuantity = bidQuantity;
@@ -54,13 +53,27 @@ export class Exchange {
         }
       }
     }
-
+    
     return {
       side,
       from,
       fromQuantity: quantity,
       to: side === "BUY" ? this.symbol.baseAsset : this.symbol.quoteAsset,
-      toQuantity: side === "BUY" ? baseQuantity : quoteQuantity,
+      toQuantity: side === "BUY" ? this.format(this.symbol.stepSize, baseQuantity) : this.format(this.symbol.tickSize, quoteQuantity),
     };
   }
+  
+  format(size, quantity) {
+    const index = size.indexOf(1);
+    const precision = index ? index - 1 : 0;
+    const splitedQty = quantity.toString().split(".");
+    const part1 = splitedQty[0];
+    const part2 = splitedQty[1]?.substring(0, precision);
+    if (Number(part2)) {
+      return Number(`${part1}.${part2}`);
+    } else {
+      return Number(part1);
+    }
+  }
+  
 }
